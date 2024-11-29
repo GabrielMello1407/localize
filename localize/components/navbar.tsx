@@ -1,9 +1,8 @@
-import Link from 'next/link';
 import MainNav from './main-nav';
 
 const Navbar = () => {
   return (
-    <div className="bg-gray-800 text-white p-4">
+    <div className="bg-gray-900 p-4 shadow-md">
       <MainNav />
     </div>
   );
