@@ -15,6 +15,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.462.0",
     "next": "15.0.3",
+    "node-cron": "^3.0.3",
     "prisma": "^5.22.0",
     "react": "19.0.0-rc-66855b96-20241106",
     "react-dom": "19.0.0-rc-66855b96-20241106",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/node-cron": "^3.0.11",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.20",
