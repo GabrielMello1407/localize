@@ -8,22 +8,43 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model Event {
-  id          String   @id @default(uuid())
-  title       String
-  description String
-  date        DateTime
-  location    String
-  category    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+enum Role {
+  USER
+  ADMIN
 }
 
 model User {
-  id        String   @id @default(uuid())
+  id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
   password  String
+  role      Role     @default(USER)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  tikets    Ticket[]
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  date        DateTime
+  location    String
+  price       Float // Preço do ingresso
+  capacity    Int // Quantidade máxima de ingressos disponíveis
+  tikets      Ticket[] // Relacionamento com os ingressos gerados
+  finished    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Ticket {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  eventId   Int
+  codeQr    String   @unique // Código QR único gerado para o ingresso
+  used      Boolean  @default(false) // Indica se o ingresso já foi usado
+  createdAt DateTime @default(now())
+
+  // Relacionamentos
+  user  User  @relation(fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
 }
