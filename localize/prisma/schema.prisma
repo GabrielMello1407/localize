@@ -20,7 +20,8 @@ model User {
   password  String
   role      Role     @default(USER)
   createdAt DateTime @default(now())
-  tikets    Ticket[]
+  tickets   Ticket[]
+  events    Event[] // Relacionamento com os eventos criados
 }
 
 model Event {
@@ -29,22 +30,23 @@ model Event {
   description String
   date        DateTime
   location    String
-  price       Float // Preço do ingresso
-  capacity    Int // Quantidade máxima de ingressos disponíveis
-  tikets      Ticket[] // Relacionamento com os ingressos gerados
+  price       Float
+  capacity    Int
+  tickets     Ticket[]
   finished    Boolean  @default(false)
   createdAt   DateTime @default(now())
+  creatorId   Int // Campo para associar o usuário que criou o evento
+  creator     User     @relation(fields: [creatorId], references: [id]) // Relacionamento com o criador do evento
 }
 
 model Ticket {
   id        Int      @id @default(autoincrement())
   userId    Int
   eventId   Int
-  codeQr    String   @unique // Código QR único gerado para o ingresso
-  used      Boolean  @default(false) // Indica se o ingresso já foi usado
+  codeQr    String   @unique
+  used      Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  // Relacionamentos
   user  User  @relation(fields: [userId], references: [id])
   event Event @relation(fields: [eventId], references: [id])
 }
