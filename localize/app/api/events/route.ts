@@ -98,13 +98,10 @@ export async function GET() {
     },
   });
 
-  // Search for all events that are still ongoing
-
+  // Search for all events that are still ongoing without including tickets
   const events = await prismadb.event.findMany({
     where: { finished: false },
-    include: {
-      tickets: true,
-    },
+    // Remover a inclusão dos tickets
   });
 
   return NextResponse.json(events);

@@ -134,10 +134,9 @@ export async function GET(
     );
   }
 
-  // Fetch the event from the database using the ID
+  // Fetch the event from the database using the ID without including tickets
   const event = await prismadb.event.findUnique({
     where: { id: eventIdParsed },
-    include: { tickets: true },
   });
 
   if (!event) {
