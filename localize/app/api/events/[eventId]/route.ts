@@ -3,6 +3,16 @@
 import prismadb from '@/lib/prismadb';
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
+import { z } from 'zod';
+
+const eventUpdateSchema = z.object({
+  name: z.string().optional(),
+  description: z.string().optional(),
+  date: z.string().optional(),
+  location: z.string().optional(),
+  price: z.number().optional(),
+  capacity: z.number().optional(),
+});
 
 // Extract userId from the JWT token
 async function getUserIdFromRequest(req: Request): Promise<number | null> {
@@ -36,6 +46,18 @@ export async function PUT(
     );
   }
 
+  const body = await req.json();
+  const result = eventUpdateSchema.safeParse(body);
+
+  if (!result.success) {
+    return NextResponse.json(
+      { error: 'Dados inválidos.', details: result.error.errors },
+      { status: 400 },
+    );
+  }
+
+  const { description, date, location, price, capacity, name } = result.data;
+
   // Get the authenticated user's ID
   const userId = await getUserIdFromRequest(req);
   if (!userId) {
@@ -66,9 +88,6 @@ export async function PUT(
     );
   }
 
-  const { description, date, location, price, capacity, name } =
-    await req.json();
-
   if (name) {
     const existingEvent = await prismadb.event.findFirst({
       where: { name },
@@ -84,8 +103,8 @@ export async function PUT(
 
   // Check if the date is valid and not in the past
   const dateNow = new Date();
-  const dateEvent = new Date(date);
-  if (dateEvent < dateNow) {
+  const dateEvent = date ? new Date(date) : null;
+  if (dateEvent && dateEvent < dateNow) {
     return NextResponse.json(
       { error: 'A data do evento não pode ser anterior a hoje.' },
       { status: 400 },
@@ -105,7 +124,7 @@ export async function PUT(
     where: { id: eventIdParsed },
     data: {
       description,
-      date: new Date(date),
+      date: dateEvent ? dateEvent : event.date,
       location,
       price,
       capacity,

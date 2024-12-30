@@ -45,6 +45,7 @@ model Ticket {
   eventId   Int
   codeQr    String   @unique
   used      Boolean  @default(false)
+  qrCodeUrl String // Adicionar esta linha
   createdAt DateTime @default(now())
 
   user  User  @relation(fields: [userId], references: [id])

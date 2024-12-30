@@ -3,6 +3,16 @@
 import prismadb from '@/lib/prismadb';
 import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const eventSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  date: z.string(),
+  location: z.string(),
+  price: z.number(),
+  capacity: z.number(),
+});
 
 async function getUserIdFromRequest(req: Request): Promise<number | null> {
   const secretKey = 'secret_key';
@@ -22,8 +32,17 @@ async function getUserIdFromRequest(req: Request): Promise<number | null> {
 }
 
 export async function POST(req: Request) {
-  const { name, description, date, location, price, capacity } =
-    await req.json();
+  const body = await req.json();
+  const result = eventSchema.safeParse(body);
+
+  if (!result.success) {
+    return NextResponse.json(
+      { error: 'Dados inválidos.', details: result.error.errors },
+      { status: 400 },
+    );
+  }
+
+  const { name, description, date, location, price, capacity } = result.data;
 
   const dateNow = new Date();
   const dateEvent = new Date(date);
@@ -32,13 +51,6 @@ export async function POST(req: Request) {
   if (dateEvent < dateNow) {
     return NextResponse.json(
       { error: 'A data do evento não pode ser anterior a hoje.' },
-      { status: 400 },
-    );
-  }
-
-  if (!name || !description || !date || !location || !price || !capacity) {
-    return NextResponse.json(
-      { error: 'Todos os campos são obrigatórios.' },
       { status: 400 },
     );
   }

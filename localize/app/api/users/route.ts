@@ -2,12 +2,30 @@ import prismadb from '@/lib/prismadb';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 
 const secretKey = 'secret_key';
 
+const userSchema = z.object({
+  action: z.enum(['signup', 'login']),
+  name: z.string().optional(),
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
 // New user creation
 export async function POST(req: Request) {
-  const { action, name, email, password } = await req.json();
+  const body = await req.json();
+  const result = userSchema.safeParse(body);
+
+  if (!result.success) {
+    return NextResponse.json(
+      { error: 'Dados inválidos.', details: result.error.errors },
+      { status: 400 },
+    );
+  }
+
+  const { action, name, email, password } = result.data;
 
   if (!action) {
     return NextResponse.json(

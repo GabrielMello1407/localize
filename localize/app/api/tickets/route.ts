@@ -1,8 +1,14 @@
 import prismadb from '@/lib/prismadb';
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
+import { z } from 'zod';
 
 const secretKey = 'secret_key';
+
+const ticketSchema = z.object({
+  userId: z.number(),
+  eventId: z.number(),
+});
 
 // Extract userId from JWT token
 async function getUserIdFromRequest(req: Request): Promise<number | null> {
@@ -25,7 +31,17 @@ async function getUserIdFromRequest(req: Request): Promise<number | null> {
 }
 
 export async function POST(req: Request) {
-  const { userId, eventId } = await req.json();
+  const body = await req.json();
+  const result = ticketSchema.safeParse(body);
+
+  if (!result.success) {
+    return NextResponse.json(
+      { error: 'Dados inválidos.', details: result.error.errors },
+      { status: 400 },
+    );
+  }
+
+  const { userId, eventId } = result.data;
 
   // Authentication token validation
   const authenticatedUserId = await getUserIdFromRequest(req);
@@ -33,14 +49,6 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: 'Usuário não autenticado.' },
       { status: 401 },
-    );
-  }
-
-  // Data validation
-  if (!userId || !eventId) {
-    return NextResponse.json(
-      { error: 'Usuário e evento são obrigatórios.' },
-      { status: 400 },
     );
   }
 
@@ -67,12 +75,17 @@ export async function POST(req: Request) {
     );
   }
 
+  // Generate the QR code URL
+  const qrData = `QR-${eventId}-${userId}-${Date.now()}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
+
   // Create the ticket
   const ticket = await prismadb.ticket.create({
     data: {
       userId,
       eventId,
-      codeQr: `QR-${eventId}-${userId}-${Date.now()}`, // Unique QR code
+      codeQr: qrData, // Store the QR data
+      qrCodeUrl, // Store the QR code URL
     },
   });
 
