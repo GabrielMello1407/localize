@@ -20,6 +20,8 @@ const buttonVariants = cva(
         link: 'text-primary underline-offset-4 hover:underline',
         localize:
           'bg-orange-500 text-white hover:bg-orange-600 focus-visible:ring-blue-400  rounded-3xl',
+        localizeTwo:
+          'w-full mt-4 bg-[#F58733] text-white hover:bg-gradient-to-r from-[#F58733] to-[#FF8C42]',
         menu: 'lg:hidden flex items-center justify-center p-2 text-white hover:bg-gray-700 rounded-md transition',
         filter:
           'absolute right-2 top-1/2 transform -translate-y-1/2 text-orange-700',
