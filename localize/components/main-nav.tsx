@@ -1,17 +1,50 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from './ui/button';
 import { Menu } from 'lucide-react';
 import { useModal } from '@/providers/ModalProvider';
 import EventFilter from './event-filter';
+import { clearLoginCookies, getLoginCookies } from '@/app/actions/action';
 
-const MainNav = ({ className }: React.HTMLAttributes<HTMLElement>) => {
+interface User {
+  name: string;
+}
+
+interface MainNavProps extends React.HTMLAttributes<HTMLElement> {
+  isLoggedIn: boolean;
+  userName: string | null;
+}
+
+const MainNav = ({ className, isLoggedIn, userName }: MainNavProps) => {
   const pathname = usePathname();
+  const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
+  const [user, setUser] = useState<User | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { user } = await getLoginCookies();
+      if (user) {
+        setUser(user);
+      } else {
+        setUser(null);
+      }
+    };
+
+    fetchUser();
+  }, [isLoggedIn, userName]);
+
+  const handleLogout = async () => {
+    await clearLoginCookies();
+    setUser(null);
+    router.push('/entrar');
+  };
 
   const routes = [
     {
@@ -23,11 +56,6 @@ const MainNav = ({ className }: React.HTMLAttributes<HTMLElement>) => {
       href: '/entrar-em-contato',
       label: 'Entrar em contato',
       active: pathname === '/entrar-em-contato',
-    },
-    {
-      href: '/criar-evento',
-      label: 'Criar Evento',
-      active: pathname === '/criar-evento',
     },
   ];
 
@@ -43,7 +71,7 @@ const MainNav = ({ className }: React.HTMLAttributes<HTMLElement>) => {
           <Image
             alt="Logo"
             src="/localize-logo.png"
-            width={120}
+            width={260}
             height={40}
             className="hover:scale-105 transition-transform duration-300"
           />
@@ -86,7 +114,55 @@ const MainNav = ({ className }: React.HTMLAttributes<HTMLElement>) => {
               />
             </Link>
           ))}
-          <Button variant={'localize'}>Login</Button>
+          {user ? (
+            <div className="relative">
+              <Button
+                variant={'localize'}
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+              >
+                {user.name}
+              </Button>
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-20">
+                  <Link
+                    href="/minha-conta"
+                    className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
+                  >
+                    Minha Conta
+                  </Link>
+                  <Link
+                    href="/meus-ingressos"
+                    className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
+                  >
+                    Meus Ingressos
+                  </Link>
+                  <Link
+                    href="/criar-evento"
+                    className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
+                  >
+                    Criar Eventos
+                  </Link>
+                  <Link
+                    href="/meus-eventos"
+                    className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
+                  >
+                    Meus Eventos
+                  </Link>
+                  <Button
+                    variant={'default'}
+                    onClick={handleLogout}
+                    className="block font-medium w-full text-left px-4 py-2 bg-white text-gray-800 hover:bg-gray-200 border-none"
+                  >
+                    Sair
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Button variant={'localize'}>
+              <Link href="/entrar">Login</Link>
+            </Button>
+          )}
         </div>
       </nav>
 
@@ -116,9 +192,37 @@ const MainNav = ({ className }: React.HTMLAttributes<HTMLElement>) => {
               {route.label}
             </Link>
           ))}
-          <Button variant={'localize'} className="w-full" onClick={closeModal}>
-            Login
-          </Button>
+          {user && (
+            <>
+              <Link
+                href="/minha-conta"
+                className="block text-white hover:text-blue-400 transition-colors duration-300"
+                onClick={closeModal}
+              >
+                Minha Conta
+              </Link>
+              <Link
+                href="/meus-ingressos"
+                className="block text-white hover:text-blue-400 transition-colors duration-300"
+                onClick={closeModal}
+              >
+                Meus Ingressos
+              </Link>
+              <Link
+                href="/meus-eventos"
+                className="block text-white hover:text-blue-400 transition-colors duration-300"
+                onClick={closeModal}
+              >
+                Meus Eventos
+              </Link>
+              <Button
+                onClick={handleLogout}
+                className="block text-white bg-[#F58733] hover:text-blue-400 transition-colors duration-300 w-[100px]"
+              >
+                Sair
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </>
