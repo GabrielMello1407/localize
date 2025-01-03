@@ -21,11 +21,11 @@ model User {
   role      Role     @default(USER)
   createdAt DateTime @default(now())
   tickets   Ticket[]
-  events    Event[] // Relacionamento com os eventos criados
+  events    Event[]
 }
 
 model Event {
-  id          Int      @id @default(autoincrement())
+  id          Int               @id @default(autoincrement())
   name        String
   description String
   date        DateTime
@@ -33,21 +33,34 @@ model Event {
   price       Float
   capacity    Int
   tickets     Ticket[]
-  finished    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  creatorId   Int // Campo para associar o usuário que criou o evento
-  creator     User     @relation(fields: [creatorId], references: [id]) // Relacionamento com o criador do evento
+  finished    Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  creatorId   Int
+  creator     User              @relation(fields: [creatorId], references: [id])
+  imageUrl    String?
+  ticketTypes EventTicketType[]
 }
 
 model Ticket {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  eventId   Int
-  codeQr    String   @unique
-  used      Boolean  @default(false)
-  qrCodeUrl String // Adicionar esta linha
-  createdAt DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  eventId    Int
+  codeQr     String   @unique
+  used       Boolean  @default(false)
+  qrCodeUrl  String
+  createdAt  DateTime @default(now())
+  ticketType String
 
   user  User  @relation(fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+}
+
+model EventTicketType {
+  id       Int    @id @default(autoincrement())
+  eventId  Int
+  type     String
+  price    Float
+  capacity Int
+
   event Event @relation(fields: [eventId], references: [id])
 }
