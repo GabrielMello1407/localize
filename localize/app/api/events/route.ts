@@ -11,7 +11,16 @@ const eventSchema = z.object({
   date: z.string(),
   location: z.string(),
   price: z.number(),
-  capacity: z.number(),
+  imageUrl: z.string().optional(),
+  ticketTypes: z
+    .array(
+      z.object({
+        type: z.string(),
+        price: z.number(),
+        capacity: z.number(),
+      }),
+    )
+    .optional(),
 });
 
 async function getUserIdFromRequest(req: Request): Promise<number | null> {
@@ -42,7 +51,8 @@ export async function POST(req: Request) {
     );
   }
 
-  const { name, description, date, location, price, capacity } = result.data;
+  const { name, description, date, location, price, imageUrl, ticketTypes } =
+    result.data;
 
   const dateNow = new Date();
   const dateEvent = new Date(date);
@@ -74,10 +84,14 @@ export async function POST(req: Request) {
   const userId = await getUserIdFromRequest(req);
   if (!userId) {
     return NextResponse.json(
-      { error: 'Usuário não autenticado.' },
+      { error: 'Usuário não autenticado. Ou token expirado' },
       { status: 401 },
     );
   }
+
+  // Calculate total event capacity
+  const totalCapacity =
+    ticketTypes?.reduce((sum, ticketType) => sum + ticketType.capacity, 0) || 0;
 
   // Create the event and associate it with the logged in user
   const event = await prismadb.event.create({
@@ -87,10 +101,25 @@ export async function POST(req: Request) {
       date: new Date(date),
       location,
       price,
-      capacity,
+      capacity: totalCapacity,
+      imageUrl,
       creatorId: userId,
     },
   });
+
+  // Create ticket types for the event
+  if (ticketTypes) {
+    for (const ticketType of ticketTypes) {
+      await prismadb.eventTicketType.create({
+        data: {
+          eventId: event.id,
+          type: ticketType.type,
+          price: ticketType.price,
+          capacity: ticketType.capacity,
+        },
+      });
+    }
+  }
 
   return NextResponse.json(event, { status: 201 });
 }
@@ -113,7 +142,9 @@ export async function GET() {
   // Search for all events that are still ongoing without including tickets
   const events = await prismadb.event.findMany({
     where: { finished: false },
-    // Remover a inclusão dos tickets
+    include: {
+      ticketTypes: true,
+    },
   });
 
   return NextResponse.json(events);
