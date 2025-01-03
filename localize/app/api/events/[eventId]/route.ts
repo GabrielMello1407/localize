@@ -12,6 +12,16 @@ const eventUpdateSchema = z.object({
   location: z.string().optional(),
   price: z.number().optional(),
   capacity: z.number().optional(),
+  imageUrl: z.string().optional(),
+  ticketTypes: z
+    .array(
+      z.object({
+        type: z.string(),
+        price: z.number(),
+        capacity: z.number(),
+      }),
+    )
+    .optional(),
 });
 
 // Extract userId from the JWT token
@@ -56,7 +66,8 @@ export async function PUT(
     );
   }
 
-  const { description, date, location, price, capacity, name } = result.data;
+  const { description, date, location, price, name, imageUrl, ticketTypes } =
+    result.data;
 
   // Get the authenticated user's ID
   const userId = await getUserIdFromRequest(req);
@@ -70,7 +81,7 @@ export async function PUT(
   // Fetch the event
   const event = await prismadb.event.findUnique({
     where: { id: eventIdParsed },
-    include: { tickets: true },
+    include: { tickets: true, ticketTypes: true },
   });
 
   if (!event) {
@@ -119,6 +130,14 @@ export async function PUT(
     );
   }
 
+  // Calculate total event capacity
+  const totalCapacity = ticketTypes
+    ? ticketTypes.reduce((sum, ticketType) => sum + ticketType.capacity, 0)
+    : event.ticketTypes.reduce(
+        (sum, ticketType) => sum + ticketType.capacity,
+        0,
+      );
+
   // Update the event (keep the original name unless changed)
   const updatedEvent = await prismadb.event.update({
     where: { id: eventIdParsed },
@@ -127,10 +146,28 @@ export async function PUT(
       date: dateEvent ? dateEvent : event.date,
       location,
       price,
-      capacity,
+      capacity: totalCapacity,
       name: name ?? event.name,
+      imageUrl,
     },
   });
+
+  if (ticketTypes) {
+    await prismadb.eventTicketType.deleteMany({
+      where: { eventId: event.id },
+    });
+
+    for (const ticketType of ticketTypes) {
+      await prismadb.eventTicketType.create({
+        data: {
+          eventId: event.id,
+          type: ticketType.type,
+          price: ticketType.price,
+          capacity: ticketType.capacity,
+        },
+      });
+    }
+  }
 
   return NextResponse.json({
     message: 'Evento atualizado com sucesso.',
@@ -156,6 +193,9 @@ export async function GET(
   // Fetch the event from the database using the ID without including tickets
   const event = await prismadb.event.findUnique({
     where: { id: eventIdParsed },
+    include: {
+      ticketTypes: true,
+    },
   });
 
   if (!event) {
