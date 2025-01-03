@@ -8,6 +8,7 @@ const secretKey = 'secret_key';
 const ticketSchema = z.object({
   userId: z.number(),
   eventId: z.number(),
+  ticketType: z.string(),
 });
 
 // Extract userId from JWT token
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const { userId, eventId } = result.data;
+  const { userId, eventId, ticketType } = result.data;
 
   // Authentication token validation
   const authenticatedUserId = await getUserIdFromRequest(req);
@@ -63,14 +64,26 @@ export async function POST(req: Request) {
     );
   }
 
-  // Check if tickets are available
-  const ticketsSold = await prismadb.ticket.count({
-    where: { eventId },
+  // Check if the ticket type is valid for the event
+  const eventTicketType = await prismadb.eventTicketType.findFirst({
+    where: { eventId, type: ticketType },
   });
 
-  if (ticketsSold >= event.capacity) {
+  if (!eventTicketType) {
     return NextResponse.json(
-      { error: 'Ingressos esgotados.' },
+      { error: 'Tipo de ingresso inválido para este evento.' },
+      { status: 400 },
+    );
+  }
+
+  // Check if tickets are available for the specific type
+  const ticketsSold = await prismadb.ticket.count({
+    where: { eventId, ticketType },
+  });
+
+  if (ticketsSold >= eventTicketType.capacity) {
+    return NextResponse.json(
+      { error: 'Ingressos esgotados para este tipo.' },
       { status: 400 },
     );
   }
@@ -84,8 +97,9 @@ export async function POST(req: Request) {
     data: {
       userId,
       eventId,
-      codeQr: qrData, // Store the QR data
-      qrCodeUrl, // Store the QR code URL
+      ticketType,
+      codeQr: qrData,
+      qrCodeUrl,
     },
   });
 
@@ -150,7 +164,7 @@ export async function GET(req: Request) {
     const tickets = await prismadb.ticket.findMany({
       where: { userId: authenticatedUserId },
       include: {
-        event: true, // Include event information
+        event: true,
       },
     });
 
