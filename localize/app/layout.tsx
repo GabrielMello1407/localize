@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Navbar from '@/components/navbar';
 import { ModalProvider } from '@/providers/ModalProvider';
 import { EventFilterProvider } from '@/providers/EventFilterProvider';
+import Navbar from '@/components/navbar';
 
 export const metadata: Metadata = {
   title: 'Localize',
