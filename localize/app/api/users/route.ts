@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       );
     }
 
-    //Check if the email is already registered
+    // Check if the email is already registered
     const existingUser = await prismadb.user.findUnique({
       where: { email },
     });
@@ -58,7 +58,6 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create the new user
-
     const newUser = await prismadb.user.create({
       data: {
         name,
@@ -106,9 +105,9 @@ export async function POST(req: Request) {
       expiresIn: '1h',
     });
 
-    // Return response with token
+    // Return response with token and user data
     return NextResponse.json(
-      { message: 'Login realizado com sucesso!', token },
+      { message: 'Login realizado com sucesso!', token, user },
       { status: 200 },
     );
   }
