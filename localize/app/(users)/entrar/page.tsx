@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { setLoginCookies } from '../../actions/action';
+import toast from 'react-hot-toast';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Email inválido.' }),
@@ -51,12 +52,14 @@ export default function Entrar() {
     const result = await response.json();
 
     if (response.ok) {
+      toast.success('Login realizado com sucesso!');
       setSuccess('Login realizado com sucesso!');
       await setLoginCookies(result.user, result.token);
       window.dispatchEvent(new Event('storage'));
       router.push('/');
       window.location.reload();
     } else {
+      toast.error(result.error || 'Erro ao realizar login.');
       setError(result.error || 'Erro ao realizar login.');
     }
   };
