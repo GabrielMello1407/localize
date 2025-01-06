@@ -3,6 +3,7 @@ import './globals.css';
 import { ModalProvider } from '@/providers/ModalProvider';
 import { EventFilterProvider } from '@/providers/EventFilterProvider';
 import Navbar from '@/components/navbar';
+import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
   title: 'Localize',
@@ -17,6 +18,24 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <Toaster
+          position="bottom-right"
+          reverseOrder={false}
+          toastOptions={{
+            success: {
+              style: {
+                background: 'green',
+                color: 'white',
+              },
+            },
+            error: {
+              style: {
+                background: 'red',
+                color: 'white',
+              },
+            },
+          }}
+        />
         <ModalProvider>
           <EventFilterProvider>
             <Navbar />
