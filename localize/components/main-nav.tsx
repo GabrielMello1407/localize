@@ -71,8 +71,10 @@ const MainNav = ({ className, isLoggedIn, userName }: MainNavProps) => {
           <Image
             alt="Logo"
             src="/localize-logo.png"
-            width={260}
+            width={200}
             height={40}
+            style={{ width: 'auto', height: 'auto' }}
+            priority
             className="hover:scale-105 transition-transform duration-300"
           />
         </Link>
