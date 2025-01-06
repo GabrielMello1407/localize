@@ -1,7 +1,9 @@
+import EventGroup from '@/components/event-group';
+
 const Events = () => {
   return (
-    <div>
-      <h1>Eventos</h1>
+    <div className="container mx-auto px-4 py-8">
+      <EventGroup />
     </div>
   );
 };
