@@ -124,8 +124,11 @@ export async function POST(req: Request) {
   return NextResponse.json(event, { status: 201 });
 }
 
-// Get all events
-export async function GET() {
+// Get all events or events created by the authenticated user
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const userEvents = searchParams.get('userEvents') === 'true';
+
   // Update the 'finished' field to true in events with a date before the current date
   await prismadb.event.updateMany({
     where: {
@@ -139,13 +142,34 @@ export async function GET() {
     },
   });
 
-  // Search for all events that are still ongoing without including tickets
-  const events = await prismadb.event.findMany({
-    where: { finished: false },
-    include: {
-      ticketTypes: true,
-    },
-  });
+  if (userEvents) {
+    // Authentication token validation
+    const authenticatedUserId = await getUserIdFromRequest(req);
+    if (!authenticatedUserId) {
+      return NextResponse.json(
+        { error: 'Usuário não autenticado.' },
+        { status: 401 },
+      );
+    }
 
-  return NextResponse.json(events);
+    // Search for all events created by the authenticated user
+    const events = await prismadb.event.findMany({
+      where: { finished: false, creatorId: authenticatedUserId },
+      include: {
+        ticketTypes: true,
+      },
+    });
+
+    return NextResponse.json(events);
+  } else {
+    // Search for all events that are still ongoing without including tickets
+    const events = await prismadb.event.findMany({
+      where: { finished: false },
+      include: {
+        ticketTypes: true,
+      },
+    });
+
+    return NextResponse.json(events);
+  }
 }
