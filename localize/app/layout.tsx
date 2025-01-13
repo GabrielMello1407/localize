@@ -19,7 +19,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Toaster
-          position="bottom-right"
+          position="top-center"
           reverseOrder={false}
           toastOptions={{
             success: {
