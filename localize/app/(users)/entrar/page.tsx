@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { setLoginCookies } from '../../actions/action';
+import { setLoginCookies, clearLoginCookies } from '../../actions/action';
 import toast from 'react-hot-toast';
 
 const formSchema = z.object({
@@ -59,8 +59,14 @@ export default function Entrar() {
       router.push('/');
       window.location.reload();
     } else {
-      toast.error(result.error || 'Erro ao realizar login.');
-      setError(result.error || 'Erro ao realizar login.');
+      if (response.status === 401) {
+        await clearLoginCookies();
+        toast.error('Sessão expirada. Por favor, faça login novamente.');
+        router.push('/entrar');
+      } else {
+        toast.error(result.error || 'Erro ao realizar login.');
+        setError(result.error || 'Erro ao realizar login.');
+      }
     }
   };
 
