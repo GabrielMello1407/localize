@@ -30,12 +30,13 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => (
       Ingressos Vendidos:{' '}
       <span className="font-bold">{event.ticketsSold || 0}</span>
     </p>
-    <p>Data de Início: {new Date(event.date).toLocaleDateString()}</p>
+    <p>Data de Início: {new Date(event.date).toLocaleDateString('pt-br')}</p>
     <p>
       Horário de Início:{' '}
       {new Date(event.date).toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: 'UTC',
       })}
     </p>
   </>
