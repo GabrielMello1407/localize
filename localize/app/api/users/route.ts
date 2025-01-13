@@ -13,6 +13,22 @@ const userSchema = z.object({
   password: z.string().min(6),
 });
 
+// Middleware for check token JWT
+async function verifyToken(req: Request) {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return { error: 'Token não fornecido.', status: 401 };
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, secretKey);
+    return { decoded, status: 200 };
+  } catch {
+    return { error: 'Token inválido ou expirado.', status: 401 };
+  }
+}
+
 // New user creation
 export async function POST(req: Request) {
   const body = await req.json();
@@ -122,7 +138,15 @@ export async function POST(req: Request) {
 }
 
 // Search all users
-export async function GET() {
+export async function GET(req: Request) {
+  const tokenVerification = await verifyToken(req);
+  if (tokenVerification.status !== 200) {
+    return NextResponse.json(
+      { error: tokenVerification.error },
+      { status: tokenVerification.status },
+    );
+  }
+
   const users = await prismadb.user.findMany({
     select: { id: true, name: true, email: true },
   });

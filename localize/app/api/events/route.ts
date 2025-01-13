@@ -128,6 +128,7 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const userEvents = searchParams.get('userEvents') === 'true';
+  const searchQuery = searchParams.get('txt_busca') || '';
 
   // Update the 'finished' field to true in events with a date before the current date
   await prismadb.event.updateMany({
@@ -142,6 +143,17 @@ export async function GET(req: Request) {
     },
   });
 
+  const whereClause: any = {
+    finished: false,
+  };
+
+  if (searchQuery) {
+    whereClause.name = {
+      contains: searchQuery,
+      mode: 'insensitive' as const,
+    };
+  }
+
   if (userEvents) {
     // Authentication token validation
     const authenticatedUserId = await getUserIdFromRequest(req);
@@ -154,7 +166,7 @@ export async function GET(req: Request) {
 
     // Search for all events created by the authenticated user
     const events = await prismadb.event.findMany({
-      where: { finished: false, creatorId: authenticatedUserId },
+      where: { ...whereClause, creatorId: authenticatedUserId },
       include: {
         ticketTypes: true,
       },
@@ -164,7 +176,7 @@ export async function GET(req: Request) {
   } else {
     // Search for all events that are still ongoing without including tickets
     const events = await prismadb.event.findMany({
-      where: { finished: false },
+      where: whereClause,
       include: {
         ticketTypes: true,
       },
