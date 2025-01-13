@@ -3,6 +3,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from './ui/button';
+import EventContent from './event-content';
 
 interface Event {
   id: number;
@@ -12,6 +13,7 @@ interface Event {
   location: string;
   price: number;
   imageUrl?: string;
+  time?: string; // Add time property
 }
 
 interface EventCardProps {
@@ -20,23 +22,18 @@ interface EventCardProps {
 
 const EventCard: React.FC<EventCardProps> = ({ event }) => {
   return (
-    <div className="border p-4 rounded-lg shadow-md">
+    <div className="border p-4 rounded-lg shadow-md transform transition-transform hover:scale-105 hover:shadow-lg h-80">
       {event.imageUrl && (
         <Image
           src={event.imageUrl}
           alt={event.name}
-          className="w-full h-48 object-cover rounded-md"
+          className="max-w-300 h-full object-contain rounded-md"
           width={400}
           height={300}
         />
       )}
-      <h3 className="text-xl font-semibold mt-2">{event.name}</h3>
-      <p className="text-gray-600">
-        {new Date(event.date).toLocaleDateString()}
-      </p>
-      <p className="text-gray-600">{event.location}</p>
-      <p className="text-gray-800 font-bold">R$ {event.price.toFixed(2)}</p>
-      <Button variant={'localizeTwo'}>
+      <EventContent event={event} />
+      <Button variant={'localizeTwo'} className="mt-4 hover:bg-blue-700">
         <Link href={`/eventos/${event.id}`}>Ver mais detalhes</Link>
       </Button>
     </div>

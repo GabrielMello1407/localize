@@ -1,6 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React from 'react';
 import EventList from './event-list';
 
 interface Event {
@@ -13,25 +12,13 @@ interface Event {
   imageUrl?: string;
 }
 
-const EventGroup = () => {
-  const [events, setEvents] = useState<Event[]>([]);
+interface EventGroupProps {
+  events: Event[];
+}
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await axios.get('/api/events');
-        setEvents(response.data);
-      } catch (error) {
-        console.error('Erro ao buscar eventos:', error);
-      }
-    };
-
-    fetchEvents();
-  }, []);
-
+const EventGroup: React.FC<EventGroupProps> = ({ events }) => {
   return (
     <div>
-      <h2 className="text-4xl font-bold text-center">Eventos</h2>
       <EventList events={events} />
     </div>
   );

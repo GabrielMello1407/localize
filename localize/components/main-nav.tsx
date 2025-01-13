@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -10,6 +11,9 @@ import { Menu } from 'lucide-react';
 import { useModal } from '@/providers/ModalProvider';
 import EventFilter from './event-filter';
 import { clearLoginCookies, getLoginCookies } from '@/app/actions/action';
+import axios from 'axios';
+import UserDropdown from './user-dropdown';
+import MobileMenu from './mobile-menu';
 
 interface User {
   name: string;
@@ -26,6 +30,8 @@ const MainNav = ({ className, isLoggedIn, userName }: MainNavProps) => {
   const { isOpen, openModal, closeModal } = useModal();
   const [user, setUser] = useState<User | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [filter, setFilter] = useState('');
+  const [events, setEvents] = useState([]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -40,10 +46,30 @@ const MainNav = ({ className, isLoggedIn, userName }: MainNavProps) => {
     fetchUser();
   }, [isLoggedIn, userName]);
 
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await axios.get(`/api/events?txt_busca=${filter}`);
+        setEvents(response.data);
+      } catch (error) {
+        console.error('Erro ao buscar eventos:', error);
+      }
+    };
+
+    if (filter) {
+      fetchEvents();
+    }
+  }, [filter]);
+
   const handleLogout = async () => {
     await clearLoginCookies();
     setUser(null);
     router.push('/entrar');
+  };
+
+  const handleFilterChange = (newFilter: string) => {
+    setFilter(newFilter);
+    router.push(`/eventos?txt_busca=${newFilter}`);
   };
 
   const routes = [
@@ -87,11 +113,15 @@ const MainNav = ({ className, isLoggedIn, userName }: MainNavProps) => {
           <Menu />
         </Button>
         <div className="lg:hidden w-full bg-gray-900 py-4 flex justify-center mx-auto">
-          <EventFilter className="w-full max-w-4xl" />
+          <EventFilter
+            className="w-full max-w-4xl"
+            filter={filter}
+            setFilter={handleFilterChange}
+          />
         </div>
 
         <div className="hidden lg:flex w-[400px] max-w-4xl justify-center mx-auto py-4">
-          <EventFilter />
+          <EventFilter filter={filter} setFilter={handleFilterChange} />
         </div>
 
         <div className="hidden lg:flex items-center gap-8">
@@ -117,49 +147,12 @@ const MainNav = ({ className, isLoggedIn, userName }: MainNavProps) => {
             </Link>
           ))}
           {user ? (
-            <div className="relative">
-              <Button
-                variant={'localize'}
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-              >
-                {user.name}
-              </Button>
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-20">
-                  <Link
-                    href="/minha-conta"
-                    className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
-                  >
-                    Minha Conta
-                  </Link>
-                  <Link
-                    href="/meus-ingressos"
-                    className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
-                  >
-                    Meus Ingressos
-                  </Link>
-                  <Link
-                    href="/criar-evento"
-                    className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
-                  >
-                    Criar Eventos
-                  </Link>
-                  <Link
-                    href="/meus-eventos"
-                    className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
-                  >
-                    Meus Eventos
-                  </Link>
-                  <Button
-                    variant={'default'}
-                    onClick={handleLogout}
-                    className="block font-medium w-full text-left px-4 py-2 bg-white text-gray-800 hover:bg-gray-200 border-none"
-                  >
-                    Sair
-                  </Button>
-                </div>
-              )}
-            </div>
+            <UserDropdown
+              user={user}
+              dropdownOpen={dropdownOpen}
+              setDropdownOpen={setDropdownOpen}
+              handleLogout={handleLogout}
+            />
           ) : (
             <Button variant={'localize'}>
               <Link href="/entrar">Login</Link>
@@ -168,65 +161,13 @@ const MainNav = ({ className, isLoggedIn, userName }: MainNavProps) => {
         </div>
       </nav>
 
-      <div
-        className={cn(
-          'absolute top-[170px] left-0 w-full bg-gray-800 shadow-lg rounded-md overflow-hidden transition-all duration-500 ease-in-out lg:hidden',
-          isOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0',
-        )}
-        style={{
-          transform: isOpen ? 'scaleY(1)' : 'scaleY(0)',
-          transformOrigin: 'top',
-        }}
-      >
-        <div className="flex flex-col items-start p-4 gap-4">
-          {routes.map((route) => (
-            <Link
-              key={route.href}
-              href={route.href}
-              className={cn(
-                'text-base font-medium transition-colors duration-300',
-                route.active
-                  ? 'text-orange-500'
-                  : 'text-white hover:text-blue-400',
-              )}
-              onClick={closeModal}
-            >
-              {route.label}
-            </Link>
-          ))}
-          {user && (
-            <>
-              <Link
-                href="/minha-conta"
-                className="block text-white hover:text-blue-400 transition-colors duration-300"
-                onClick={closeModal}
-              >
-                Minha Conta
-              </Link>
-              <Link
-                href="/meus-ingressos"
-                className="block text-white hover:text-blue-400 transition-colors duration-300"
-                onClick={closeModal}
-              >
-                Meus Ingressos
-              </Link>
-              <Link
-                href="/meus-eventos"
-                className="block text-white hover:text-blue-400 transition-colors duration-300"
-                onClick={closeModal}
-              >
-                Meus Eventos
-              </Link>
-              <Button
-                onClick={handleLogout}
-                className="block text-white bg-[#F58733] hover:text-blue-400 transition-colors duration-300 w-[100px]"
-              >
-                Sair
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+      <MobileMenu
+        isOpen={isOpen}
+        routes={routes}
+        user={user}
+        closeModal={closeModal}
+        handleLogout={handleLogout}
+      />
     </>
   );
 };
