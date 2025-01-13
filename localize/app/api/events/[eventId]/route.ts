@@ -45,7 +45,7 @@ export async function PUT(
   req: Request,
   { params }: { params: { eventId: string } },
 ) {
-  const { eventId } = await params;
+  const eventId = params.eventId;
 
   const eventIdParsed = parseInt(eventId);
 
@@ -190,18 +190,9 @@ export async function GET(
     );
   }
 
-  // Get the authenticated user's ID
-  const userId = await getUserIdFromRequest(req);
-  if (!userId) {
-    return NextResponse.json(
-      { error: 'Usuário não autenticado.' },
-      { status: 401 },
-    );
-  }
-
-  // Fetch the event from the database using the ID without including tickets
+  // Search event by ID
   const event = await prismadb.event.findUnique({
-    where: { id: eventIdParsed, creatorId: userId },
+    where: { id: eventIdParsed },
     include: {
       ticketTypes: true,
     },
@@ -209,14 +200,18 @@ export async function GET(
 
   if (!event) {
     return NextResponse.json(
-      {
-        error:
-          'Evento não encontrado ou você não tem permissão para visualizá-lo.',
-      },
+      { error: 'Evento não encontrado.' },
       { status: 404 },
     );
   }
 
-  // Return the found event
+  // Check if the returned event is valid
+  if (!event || typeof event !== 'object') {
+    return NextResponse.json(
+      { error: 'Dados do evento inválidos.' },
+      { status: 500 },
+    );
+  }
+
   return NextResponse.json(event);
 }
