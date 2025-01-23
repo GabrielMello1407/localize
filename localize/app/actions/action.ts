@@ -27,3 +27,13 @@ export async function getLoginCookies() {
   const token = tokenCookie ? tokenCookie.value : null;
   return { user, token };
 }
+
+export async function handleAccountDeletion() {
+  await clearLoginCookies();
+}
+
+export async function isTokenValid() {
+  const cookieStore = await cookies();
+  const tokenCookie = await cookieStore.get('token');
+  return tokenCookie ? !!tokenCookie.value : false;
+}
