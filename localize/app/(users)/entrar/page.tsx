@@ -2,7 +2,6 @@
 'use client';
 import { useState } from 'react';
 import { useForm, FieldValues, FormProvider } from 'react-hook-form';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   FormField,
@@ -15,19 +14,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { setLoginCookies, clearLoginCookies } from '../../actions/action';
+import { loginUser } from '@/services/userService';
+import { setLoginCookies, clearLoginCookies } from '@/app/actions/action';
 import toast from 'react-hot-toast';
-
-const formSchema = z.object({
-  email: z.string().email({ message: 'Email inválido.' }),
-  password: z
-    .string()
-    .min(6, { message: 'Senha deve ter pelo menos 6 caracteres.' }),
-});
+import { loginSchema } from '@/schemas/userSchema';
 
 export default function Entrar() {
   const form = useForm<FieldValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
       password: '',
@@ -40,38 +34,33 @@ export default function Entrar() {
   const onSubmit = async (data: FieldValues) => {
     setError('');
     setSuccess('');
+    console.log('Dados enviados:', data);
 
-    const response = await fetch('/api/users', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ action: 'login', ...data }),
-    });
+    try {
+      const response = await loginUser({ action: 'login', ...data });
+      console.log('Resposta da API:', response);
 
-    const result = await response.json();
-
-    if (response.ok) {
-      toast.success('Login realizado com sucesso!');
-      setSuccess('Login realizado com sucesso!');
-      await setLoginCookies(result.user, result.token);
-      window.dispatchEvent(new Event('storage'));
-      router.push('/');
-      window.location.reload();
-    } else {
-      if (response.status === 401) {
+      if (response.status === 200) {
+        toast.success('Login realizado com sucesso!');
+        setSuccess('Login realizado com sucesso!');
+        await setLoginCookies(response.data.user, response.data.token);
+        router.push('/');
+        window.location.reload();
+      } else if (response.status === 401) {
         await clearLoginCookies();
         toast.error('Sessão expirada. Por favor, faça login novamente.');
         router.push('/entrar');
       } else {
-        toast.error(result.error || 'Erro ao realizar login.');
-        setError(result.error || 'Erro ao realizar login.');
+        setError(response.data.error || 'Erro ao realizar login.');
       }
+    } catch (err: any) {
+      console.error('Erro ao realizar login:', err);
+      setError(err.response?.data?.error || 'Erro ao realizar login.');
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center  bg-slate-100">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100">
       <h1 className="text-2xl font-bold mb-4">Entrar</h1>
       <FormProvider {...form}>
         <form
