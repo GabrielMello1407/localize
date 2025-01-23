@@ -25,6 +25,11 @@ const buttonVariants = cva(
         menu: 'lg:hidden flex items-center justify-center p-2 text-white hover:bg-gray-700 rounded-md transition',
         filter:
           'absolute right-2 top-1/2 transform -translate-y-1/2 text-orange-700',
+        icon: 'absolute right-2 top-2 h-full border-l-0 rounded-l-none p-2',
+        profile:
+          'px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors bg-none',
+        menuLeft:
+          'hover:bg-gray-50 text-gray-700 w-full flex items-center justify-between p-3 rounded-lg transition-all',
       },
       size: {
         default: 'h-10 px-4 py-2',
