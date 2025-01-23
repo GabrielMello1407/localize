@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { ModalProvider } from '@/providers/ModalProvider';
 import { EventFilterProvider } from '@/providers/EventFilterProvider';
-import Navbar from '@/components/navbar';
+import Navbar from '@/components/navbar/navbar';
 import { Toaster } from 'react-hot-toast';
+import Footer from '@/components/footer';
 
 export const metadata: Metadata = {
   title: 'Localize',
@@ -17,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
+      <body className="flex flex-col min-h-screen">
         <Toaster
           position="top-center"
           reverseOrder={false}
@@ -39,7 +40,8 @@ export default function RootLayout({
         <ModalProvider>
           <EventFilterProvider>
             <Navbar />
-            {children}
+            <main className="flex-grow">{children}</main>
+            <Footer />
           </EventFilterProvider>
         </ModalProvider>
       </body>
