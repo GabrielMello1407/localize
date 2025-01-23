@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import prismadb from '@/lib/prismadb';
 import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
@@ -24,7 +22,7 @@ const eventSchema = z.object({
 });
 
 async function getUserIdFromRequest(req: Request): Promise<number | null> {
-  const secretKey = 'secret_key';
+  const secretKey = process.env.JWT_SECRET as string;
   const token = req.headers.get('Authorization')?.replace('Bearer ', '');
 
   if (!token) {
@@ -42,9 +40,11 @@ async function getUserIdFromRequest(req: Request): Promise<number | null> {
 
 export async function POST(req: Request) {
   const body = await req.json();
+  console.log('Dados recebidos para criação de evento:', body);
   const result = eventSchema.safeParse(body);
 
   if (!result.success) {
+    console.log('Erro de validação:', result.error.errors);
     return NextResponse.json(
       { error: 'Dados inválidos.', details: result.error.errors },
       { status: 400 },
@@ -59,6 +59,7 @@ export async function POST(req: Request) {
 
   // Check if the event date is before the current date
   if (dateEvent < dateNow) {
+    console.log('Erro: A data do evento não pode ser anterior a hoje.');
     return NextResponse.json(
       { error: 'A data do evento não pode ser anterior a hoje.' },
       { status: 400 },
@@ -74,6 +75,7 @@ export async function POST(req: Request) {
   });
 
   if (existingEvent) {
+    console.log('Erro: Já existe um evento com esse nome em andamento.');
     return NextResponse.json(
       { error: 'Já existe um evento com esse nome em andamento.' },
       { status: 400 },
@@ -83,6 +85,7 @@ export async function POST(req: Request) {
   // Get the ID of the authenticated user
   const userId = await getUserIdFromRequest(req);
   if (!userId) {
+    console.log('Erro: Usuário não autenticado. Ou token expirado');
     return NextResponse.json(
       { error: 'Usuário não autenticado. Ou token expirado' },
       { status: 401 },
@@ -93,35 +96,44 @@ export async function POST(req: Request) {
   const totalCapacity =
     ticketTypes?.reduce((sum, ticketType) => sum + ticketType.capacity, 0) || 0;
 
-  // Create the event and associate it with the logged in user
-  const event = await prismadb.event.create({
-    data: {
-      name,
-      description,
-      date: new Date(date),
-      location,
-      price,
-      capacity: totalCapacity,
-      imageUrl,
-      creatorId: userId,
-    },
-  });
+  try {
+    // Create the event and associate it with the logged in user
+    const event = await prismadb.event.create({
+      data: {
+        name,
+        description,
+        date: new Date(date),
+        location,
+        price,
+        capacity: totalCapacity,
+        imageUrl,
+        creatorId: userId,
+      },
+    });
 
-  // Create ticket types for the event
-  if (ticketTypes) {
-    for (const ticketType of ticketTypes) {
-      await prismadb.eventTicketType.create({
-        data: {
-          eventId: event.id,
-          type: ticketType.type,
-          price: ticketType.price,
-          capacity: ticketType.capacity,
-        },
-      });
+    // Create ticket types for the event
+    if (ticketTypes) {
+      for (const ticketType of ticketTypes) {
+        await prismadb.eventTicketType.create({
+          data: {
+            eventId: event.id,
+            type: ticketType.type,
+            price: ticketType.price,
+            capacity: ticketType.capacity,
+          },
+        });
+      }
     }
-  }
 
-  return NextResponse.json(event, { status: 201 });
+    console.log('Evento criado com sucesso:', event);
+    return NextResponse.json(event, { status: 201 });
+  } catch (error) {
+    console.error('Erro ao criar evento:', error);
+    return NextResponse.json(
+      { error: 'Erro ao criar evento. Verifique os dados e tente novamente.' },
+      { status: 500 },
+    );
+  }
 }
 
 // Get all events or events created by the authenticated user

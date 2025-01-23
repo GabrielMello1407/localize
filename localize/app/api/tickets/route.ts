@@ -2,8 +2,9 @@ import prismadb from '@/lib/prismadb';
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
+import QRCode from 'qrcode';
 
-const secretKey = 'secret_key';
+const secretKey = process.env.JWT_SECRET as string;
 
 const ticketSchema = z.object({
   userId: z.number(),
@@ -64,6 +65,17 @@ export async function POST(req: Request) {
     );
   }
 
+  // Check if the authenticated user is the creator of the event
+  if (event.creatorId === authenticatedUserId) {
+    return NextResponse.json(
+      {
+        error:
+          'O dono do evento não pode comprar ingressos para seu próprio evento.',
+      },
+      { status: 400 },
+    );
+  }
+
   // Check if the ticket type is valid for the event
   const eventTicketType = await prismadb.eventTicketType.findFirst({
     where: { eventId, type: ticketType },
@@ -88,9 +100,11 @@ export async function POST(req: Request) {
     );
   }
 
-  // Generate the QR code URL
-  const qrData = `QR-${eventId}-${userId}-${Date.now()}`;
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
+  // Generate the QR code token
+  const qrData = jwt.sign({ eventId, userId, ticketType }, secretKey, {
+    expiresIn: '1h',
+  });
+  const qrCodeUrl = await QRCode.toDataURL(qrData);
 
   // Create the ticket
   const ticket = await prismadb.ticket.create({
@@ -103,11 +117,13 @@ export async function POST(req: Request) {
     },
   });
 
-  // Decrease the event capacity
-  await prismadb.event.update({
-    where: { id: eventId },
-    data: { capacity: event.capacity - 1 },
-  });
+  // Decrease the event capacity using a transaction
+  await prismadb.$transaction([
+    prismadb.event.update({
+      where: { id: eventId },
+      data: { capacity: { decrement: 1 } },
+    }),
+  ]);
 
   return NextResponse.json(ticket, { status: 201 });
 }
@@ -117,39 +133,71 @@ export async function GET(req: Request) {
   const codeQr = searchParams.get('codigoQr');
 
   if (codeQr) {
-    // Check if the ticket exists
-    const ticket = await prismadb.ticket.findUnique({
-      where: { codeQr },
-      include: {
-        event: true, // Include event information for additional validation
-      },
-    });
+    try {
+      const decoded = jwt.verify(codeQr, secretKey) as {
+        eventId: number;
+        userId: number;
+        ticketType: string;
+      };
 
-    if (!ticket) {
-      return NextResponse.json(
-        { error: 'Ticket não encontrado.' },
-        { status: 404 },
-      );
+      // Check if the event exists and is valid
+      const event = await prismadb.event.findUnique({
+        where: { id: decoded.eventId },
+      });
+
+      if (!event) {
+        return NextResponse.json(
+          { error: 'Evento não encontrado.' },
+          { status: 404 },
+        );
+      }
+
+      // Check if the event has started or ended
+      const currentTime = new Date();
+      const eventStartTime = new Date(event.date);
+      if (currentTime < eventStartTime) {
+        return NextResponse.json(
+          { error: 'Evento ainda não começou.' },
+          { status: 400 },
+        );
+      }
+
+      // Check if the ticket exists
+      const ticket = await prismadb.ticket.findUnique({
+        where: { codeQr },
+        include: {
+          event: true, // Include event information for additional validation
+        },
+      });
+
+      if (!ticket) {
+        return NextResponse.json(
+          { error: 'Ticket não encontrado.' },
+          { status: 404 },
+        );
+      }
+
+      // Check if the ticket has already been used
+      if (ticket.used) {
+        return NextResponse.json(
+          { error: 'Ticket já utilizado.' },
+          { status: 400 },
+        );
+      }
+
+      // Update the status to used
+      await prismadb.ticket.update({
+        where: { id: ticket.id },
+        data: { used: true },
+      });
+
+      return NextResponse.json({
+        message: 'Entrada autorizada!',
+        event: ticket.event,
+      });
+    } catch (error) {
+      return NextResponse.json({ error: 'QR Code inválido.' }, { status: 400 });
     }
-
-    // Check if the ticket has already been used
-    if (ticket.used) {
-      return NextResponse.json(
-        { error: 'Ticket já utilizado.' },
-        { status: 400 },
-      );
-    }
-
-    // Update the status to used
-    await prismadb.ticket.update({
-      where: { id: ticket.id },
-      data: { used: true },
-    });
-
-    return NextResponse.json({
-      message: 'Entrada autorizada!',
-      event: ticket.event,
-    });
   } else {
     // Authentication token validation
     const authenticatedUserId = await getUserIdFromRequest(req);
