@@ -3,9 +3,9 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import EventGroup from '@/components/event-group';
+import EventGroup from '@/components/events/event-group';
 import axios from 'axios';
-import EventFilter from '@/components/event-filter';
+import EventFilter from '@/components/events/event-filter';
 
 const Events = () => {
   const [events, setEvents] = useState([]);
