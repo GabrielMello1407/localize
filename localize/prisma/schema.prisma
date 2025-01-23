@@ -14,14 +14,26 @@ enum Role {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-  tickets   Ticket[]
-  events    Event[]
+  id               Int      @id @default(autoincrement())
+  name             String
+  email            String   @unique
+  password         String
+  role             Role     @default(USER)
+  createdAt        DateTime @default(now())
+  tickets          Ticket[]
+  events           Event[]
+  cpf              String   @unique
+  whatsapp         String
+  address          String
+  state            String
+  houseNumber      Int
+  cep              String
+  birthDate        DateTime
+  termsAccepted    Boolean  @default(false)
+  city             String
+  neighborhood     String
+  photoUrl         String   @default("public/usuario.png")
+  isEmailConfirmed Boolean  @default(false)
 }
 
 model Event {
