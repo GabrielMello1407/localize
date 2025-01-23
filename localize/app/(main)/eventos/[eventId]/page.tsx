@@ -6,6 +6,15 @@ import { getLoginCookies } from '@/app/actions/action';
 import { buyTicket } from '@/app/actions/ticketActions';
 import { fetchEvent } from '@/app/actions/eventActions';
 import { useParams } from 'next/navigation';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface TicketType {
   id: number;
@@ -23,6 +32,7 @@ interface Event {
   price: number;
   imageUrl?: string;
   ticketTypes: TicketType[];
+  creatorId: number;
 }
 
 // Estender o tipo ToastOptions para incluir a nova classe de opções
@@ -38,10 +48,9 @@ interface CustomToast extends ToastOptions {
 const EventPage: React.FC = () => {
   const { eventId } = useParams();
   const [event, setEvent] = useState<Event | null>(null);
-  const [selectedTicketType, setSelectedTicketType] = useState<number | null>(
+  const [selectedTicketType, setSelectedTicketType] = useState<string | null>(
     null,
   );
-  const [quantity, setQuantity] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,11 +60,9 @@ const EventPage: React.FC = () => {
         setLoading(true);
         try {
           const data: Event = await fetchEvent(eventId);
-          console.log('Event data:', data);
           setEvent(data);
           setLoading(false);
         } catch (err: any) {
-          console.error('Error fetching event:', err);
           setError('Erro ao carregar evento.');
           setLoading(false);
         }
@@ -79,17 +86,34 @@ const EventPage: React.FC = () => {
       return;
     }
 
-    const { token } = await getLoginCookies();
-    if (!token) {
+    const { token, user } = await getLoginCookies();
+    if (!token || !user.id) {
       toast.error('Usuário não autenticado.');
       return;
     }
 
+    if (event?.creatorId === user.id) {
+      toast.error(
+        'O dono do evento não pode comprar ingressos para seu próprio evento.',
+      );
+      return;
+    }
+
     try {
-      await buyTicket(Number(eventId), selectedTicketType, quantity, token);
+      await buyTicket(user.id, Number(eventId), selectedTicketType, token);
       toast.success('Ingresso comprado com sucesso!');
-    } catch {
-      toast.error('Erro ao comprar ingresso.');
+    } catch (error: any) {
+      console.error('Erro ao comprar ingresso:', error);
+      if (
+        error.response?.data?.error ===
+        'O dono do evento não pode comprar ingressos para seu próprio evento.'
+      ) {
+        toast.error(
+          'O dono do evento não pode comprar ingressos para seu próprio evento.',
+        );
+      } else {
+        toast.error('Erro ao comprar ingresso.');
+      }
     }
   };
 
@@ -110,9 +134,9 @@ const EventPage: React.FC = () => {
       <Image
         src={event.imageUrl || '/default-image.jpg'}
         alt={event.name}
-        width={200}
-        height={200}
-        className="w-full h-64 object-cover mb-4"
+        width={600}
+        height={300}
+        className="w-full max-w-full object-contain mb-4"
       />
       <h1 className="text-3xl font-bold mb-2">{event.name}</h1>
       <p className="text-gray-700 mb-4">{event.description}</p>
@@ -129,30 +153,21 @@ const EventPage: React.FC = () => {
       <p className="text-gray-700 mb-4">Local: {event.location}</p>
       <div className="mb-4">
         <label className="block text-gray-700 mb-2">Tipo de Ingresso:</label>
-        <select
-          value={selectedTicketType || ''}
-          onChange={(e) => setSelectedTicketType(Number(e.target.value))}
-          className="block w-full p-2 border border-gray-300 rounded"
-        >
-          <option value="" disabled>
-            Selecione um tipo de ingresso
-          </option>
-          {event.ticketTypes.map((ticketType) => (
-            <option key={ticketType.id} value={ticketType.id}>
-              {ticketType.type} - R$ {ticketType.price.toFixed(2)}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="mb-4">
-        <label className="block text-gray-700 mb-2">Quantidade:</label>
-        <input
-          type="number"
-          value={quantity}
-          onChange={(e) => setQuantity(Number(e.target.value))}
-          min="1"
-          className="block w-full p-2 border border-gray-300 rounded"
-        />
+        <Select onValueChange={(value) => setSelectedTicketType(value)}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Selecione um tipo de ingresso" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Tipos de Ingresso</SelectLabel>
+              {event.ticketTypes.map((ticketType) => (
+                <SelectItem key={ticketType.id} value={ticketType.type}>
+                  {ticketType.type} - R$ {ticketType.price.toFixed(2)}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </div>
       <button
         onClick={handleBuyTicket}
