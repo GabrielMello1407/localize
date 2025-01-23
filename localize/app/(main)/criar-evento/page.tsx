@@ -80,10 +80,14 @@ const CriarEvento = () => {
       if (response.status === 201) {
         toast.success('Evento criado com sucesso!');
         router.push('/eventos');
+      } else {
+        console.error('Erro ao criar evento:', response.data);
+        setError(response.data.error || 'Erro ao criar evento.');
+        toast.error(response.data.error || 'Erro ao criar evento.');
       }
-    } catch (error) {
-      setError('Erro ao criar evento. Verifique os dados e tente novamente.');
+    } catch (error: any) {
       console.error('Erro ao criar evento:', error);
+      setError('Erro ao criar evento. Verifique os dados e tente novamente.');
       toast.error(
         'Erro ao criar evento. Verifique os dados e tente novamente.',
       );
